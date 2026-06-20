@@ -152,8 +152,13 @@ async function fetchFriends() {
 }
 
 async function fetchRequests() {
-  const data = await api('/api/friends/requests');
-  renderRequests(data);
+  try {
+    const data = await api('/api/friends/requests');
+    console.log('📨 طلبات الصداقة:', data);
+    renderRequests(data);
+  } catch (err) {
+    console.error('❌ خطأ في جلب الطلبات:', err);
+  }
 }
 
 function renderFriends() {

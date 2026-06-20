@@ -102,4 +102,11 @@ router.get('/', authenticateToken, (req, res) => {
   res.json(friends);
 });
 
+// ====== DEBUG: عرض جميع طلبات الصداقة (للتشخيص) ======
+router.get('/debug', authenticateToken, (req, res) => {
+  const allRequests = db.all(`SELECT * FROM friend_requests ORDER BY id DESC`);
+  const currentUser = db.get('SELECT id, username FROM users WHERE id = ?', [req.user.id]);
+  res.json({ currentUser, allRequests });
+});
+
 module.exports = router;
