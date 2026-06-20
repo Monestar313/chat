@@ -35,6 +35,13 @@ const toast = $('toast');
 const sidebarUsername = $('sidebarUsername');
 const requestsBadge = $('requestsBadge');
 const loadingBar = $('loadingBar');
+const chatArea = $('chatArea');
+const chatPartnerName = $('chatPartnerName');
+const chatMessages = $('chatMessages');
+const chatInput = $('chatInput');
+const chatSendBtn = $('chatSendBtn');
+const chatCloseBtn = $('chatCloseBtn');
+const chatCallBtn = $('chatCallBtn');
 
 // ===== State =====
 let socket;
@@ -50,6 +57,8 @@ let friends = [];
 let onlineUserIds = new Set();
 let currentTab = 'friends';
 let searchTimeout = null;
+let chatPartnerId = null;
+let chatPartnerUsername = '';
 
 const rtcConfig = {
   iceServers: [
@@ -130,6 +139,19 @@ function connectSocket() {
   });
 
   socket.on('call:end', () => endCall(true));
+
+  socket.on('message:new', ({ from, fromUsername, message, createdAt }) => {
+    if (chatPartnerId === from && chatArea.style.display !== 'none') {
+      appendMessage(message, 'received', createdAt);
+    } else {
+      const isChattingWith = friends.some(f => f.id === from);
+      if (isChattingWith) showToast(`💬 ${fromUsername}: ${message}`);
+    }
+  });
+
+  socket.on('message:sent', ({ message, createdAt }) => {
+    appendMessage(message, 'sent', createdAt);
+  });
 }
 
 // ===== API helper =====
@@ -181,7 +203,8 @@ function renderFriends() {
           <div class="status-text ${isOnline ? 'online' : ''}">${isOnline ? '🟢 متصل' : '🔴 غير متصل'}</div>
         </div>
         <div class="actions">
-          ${isOnline ? `<button class="call-btn" onclick="showCallOptions('${f.id}','${f.username}')" title="اتصال">📞</button>` : ''}
+          ${isOnline ? `<button class="call-btn" onclick="showCallOptions(${f.id},'${f.username}')" title="اتصال">📞</button>` : ''}
+          <button class="call-btn" onclick="openChat(${f.id},'${f.username}')" title="محادثة">💬</button>
         </div>
       </div>
     `;
@@ -325,6 +348,68 @@ window.sendRequest = async function(receiverId) {
   }
 };
 
+// ===== Chat =====
+window.openChat = function(userId, username) {
+  chatPartnerId = userId;
+  chatPartnerUsername = username;
+  chatPartnerName.textContent = username;
+
+  noCallScreen.style.display = 'none';
+  if (videoContainer) videoContainer.classList.remove('active');
+  controls.style.display = 'none';
+  chatArea.style.display = 'flex';
+
+  socket.emit('message:history', { targetUserId: userId }, (messages) => {
+    chatMessages.innerHTML = '';
+    if (!messages || messages.length === 0) {
+      chatMessages.innerHTML = '<div class="chat-empty">لا توجد رسائل بعد</div>';
+      return;
+    }
+    messages.forEach(msg => {
+      appendMessage(msg.content, msg.sender_id === user.userId ? 'sent' : 'received', msg.created_at);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  });
+};
+
+window.closeChat = function() {
+  chatArea.style.display = 'none';
+  noCallScreen.style.display = 'flex';
+  chatPartnerId = null;
+  chatPartnerUsername = '';
+};
+
+window.sendMessage = function() {
+  const text = chatInput.value.trim();
+  if (!text || !chatPartnerId) return;
+  chatInput.value = '';
+  socket.emit('message:send', { targetUserId: chatPartnerId, message: text });
+};
+
+function appendMessage(text, type, time) {
+  const empty = chatMessages.querySelector('.chat-empty');
+  if (empty) empty.remove();
+
+  const div = document.createElement('div');
+  div.className = `chat-message ${type}`;
+  const timeStr = time ? new Date(time).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '';
+  div.innerHTML = `${text}${timeStr ? `<span class="msg-time">${timeStr}</span>` : ''}`;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+chatSendBtn.addEventListener('click', window.sendMessage);
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') window.sendMessage();
+});
+chatCloseBtn.addEventListener('click', window.closeChat);
+chatCallBtn.addEventListener('click', () => {
+  if (chatPartnerId && chatPartnerUsername) {
+    window.closeChat();
+    window.showCallOptions(chatPartnerId, chatPartnerUsername);
+  }
+});
+
 // ===== Tabs =====
 document.querySelectorAll('.sidebar-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -455,6 +540,7 @@ function createPeerConnection(targetSocketId) {
 
 function showCallUI(type, username) {
   noCallScreen.style.display = 'none';
+  chatArea.style.display = 'none';
   videoContainer.classList.add('active');
   controls.style.display = 'flex';
 

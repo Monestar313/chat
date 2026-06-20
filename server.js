@@ -107,6 +107,44 @@ io.on('connection', (socket) => {
     callback(null);
   });
 
+  // إرسال رسالة نصية
+  socket.on('message:send', ({ targetUserId, message }) => {
+    const db = require('./db');
+    const result = db.run(
+      'INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)',
+      [socket.userId, targetUserId, message]
+    );
+    const sentMsg = {
+      id: result.lastInsertRowid,
+      message,
+      from: socket.userId,
+      fromUsername: socket.username,
+      createdAt: new Date().toISOString()
+    };
+    // أرسل للمستقبل
+    for (const [sid, user] of onlineUsers) {
+      if (user.userId === targetUserId) {
+        io.to(sid).emit('message:new', sentMsg);
+        break;
+      }
+    }
+    socket.emit('message:sent', { message, createdAt: sentMsg.createdAt });
+  });
+
+  // جلب تاريخ المراسلات
+  socket.on('message:history', ({ targetUserId }, callback) => {
+    const db = require('./db');
+    const messages = db.all(
+      `SELECT m.*, u.username
+       FROM messages m JOIN users u ON m.sender_id = u.id
+       WHERE (m.sender_id = ? AND m.receiver_id = ?)
+          OR (m.sender_id = ? AND m.receiver_id = ?)
+       ORDER BY m.created_at ASC`,
+      [socket.userId, targetUserId, targetUserId, socket.userId]
+    );
+    callback(messages);
+  });
+
   // عند قطع الاتصال
   socket.on('disconnect', () => {
     console.log(`قطع: ${socket.username} (${socket.id})`);

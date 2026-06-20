@@ -35,6 +35,16 @@ async function initDB() {
     FOREIGN KEY (receiver_id) REFERENCES users(id)
   )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id),
+    FOREIGN KEY (receiver_id) REFERENCES users(id)
+  )`);
+
   // إضافة المستخدم admin افتراضيًا
   const result = db.exec(`SELECT id FROM users WHERE username = 'admin'`);
   if (result.length === 0 || result[0].values.length === 0) {
