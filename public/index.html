@@ -14,6 +14,14 @@
         <h2>✦ خصوصي</h2>
         <div class="user-badge">
           <span id="sidebarUsername"></span>
+          <div class="status-selector">
+            <span class="status-dot" id="myStatusDot">●</span>
+            <select id="statusSelect">
+              <option value="online">🟢 متصل</option>
+              <option value="away">🟡 بعيد</option>
+              <option value="busy">🔴 مشغول</option>
+            </select>
+          </div>
           <button class="logout-btn" id="logoutBtn">خروج</button>
         </div>
       </div>
@@ -28,6 +36,7 @@
       <!-- تبويبات -->
       <div class="sidebar-tabs">
         <button class="sidebar-tab active" data-tab="friends">الأصدقاء</button>
+        <button class="sidebar-tab" data-tab="groups" id="groupsTab">المجموعات</button>
         <button class="sidebar-tab" data-tab="requests" id="requestsTab">
           الطلبات <span class="badge" id="requestsBadge" style="display:none">0</span>
         </button>
@@ -37,6 +46,14 @@
         <!-- قائمة الأصدقاء -->
         <div class="tab-panel active" id="panelFriends">
           <div class="scroll-list" id="friendsList"></div>
+        </div>
+
+        <!-- قائمة المجموعات -->
+        <div class="tab-panel" id="panelGroups">
+          <div class="scroll-list" id="groupsList"></div>
+          <div class="sidebar-footer-action">
+            <button class="create-group-btn" id="createGroupBtn">+ مجموعة جديدة</button>
+          </div>
         </div>
 
         <!-- قائمة الطلبات -->
@@ -68,8 +85,10 @@
         </div>
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-area">
+          <button class="chat-file-btn" id="chatFileBtn" title="إرفاق صورة">📎</button>
           <input type="text" id="chatInput" placeholder="اكتب رسالة..." autocomplete="off">
           <button class="chat-send-btn" id="chatSendBtn">إرسال</button>
+          <input type="file" id="fileInput" accept="image/*" style="display:none">
         </div>
       </div>
 
@@ -110,6 +129,20 @@
         <div class="incoming-actions">
           <button class="btn-reject" id="rejectCallBtn">✕</button>
           <button class="btn-accept" id="acceptCallBtn">✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة إنشاء مجموعة -->
+    <div class="modal-overlay" id="createGroupModal">
+      <div class="modal-card">
+        <h3>إنشاء مجموعة جديدة</h3>
+        <input type="text" id="groupNameInput" placeholder="اسم المجموعة..." autocomplete="off">
+        <div class="modal-subtitle">اختر الأصدقاء:</div>
+        <div class="modal-members-list" id="groupMembersList"></div>
+        <div class="modal-actions">
+          <button class="modal-cancel" id="cancelGroupBtn">إلغاء</button>
+          <button class="modal-confirm" id="confirmGroupBtn">إنشاء</button>
         </div>
       </div>
     </div>

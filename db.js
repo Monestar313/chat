@@ -40,10 +40,56 @@ async function initDB() {
     sender_id INTEGER NOT NULL,
     receiver_id INTEGER NOT NULL,
     content TEXT NOT NULL,
+    edited INTEGER DEFAULT 0,
+    deleted INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sender_id) REFERENCES users(id),
     FOREIGN KEY (receiver_id) REFERENCES users(id)
   )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS groups_t (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_by INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id)
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS group_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups_t(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(group_id, user_id)
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS group_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    edited INTEGER DEFAULT 0,
+    deleted INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups_t(id),
+    FOREIGN KEY (sender_id) REFERENCES users(id)
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    blocker_id INTEGER NOT NULL,
+    blocked_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (blocker_id) REFERENCES users(id),
+    FOREIGN KEY (blocked_id) REFERENCES users(id),
+    UNIQUE(blocker_id, blocked_id)
+  )`);
+
+  // ترحيل لإضافة الأعمدة الجديدة (للقواعد الموجودة)
+  try { db.run("ALTER TABLE messages ADD COLUMN edited INTEGER DEFAULT 0"); } catch(e) {}
+  try { db.run("ALTER TABLE messages ADD COLUMN deleted INTEGER DEFAULT 0"); } catch(e) {}
 
   // إضافة المستخدم admin افتراضيًا
   const result = db.exec(`SELECT id FROM users WHERE username = 'admin'`);

@@ -102,6 +102,45 @@ router.get('/', authenticateToken, (req, res) => {
   res.json(friends);
 });
 
+// حظر مستخدم
+router.post('/block', authenticateToken, (req, res) => {
+  const { userId } = req.body;
+  if (!userId || userId === req.user.id) return res.status(400).json({ error: 'معرف مستخدم غير صالح' });
+  try {
+    db.run('INSERT OR IGNORE INTO blocks (blocker_id, blocked_id) VALUES (?, ?)', [req.user.id, userId]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'خطأ في الحظر' });
+  }
+});
+
+// إلغاء حظر مستخدم
+router.post('/unblock', authenticateToken, (req, res) => {
+  const { userId } = req.body;
+  db.run('DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?', [req.user.id, userId]);
+  res.json({ success: true });
+});
+
+// قائمة المحظورين
+router.get('/blocked', authenticateToken, (req, res) => {
+  const blocked = db.all(
+    `SELECT u.id, u.username, u.display_name
+     FROM blocks b JOIN users u ON b.blocked_id = u.id
+     WHERE b.blocker_id = ?`,
+    [req.user.id]
+  );
+  res.json(blocked);
+});
+
+// التحقق من الحظر
+router.get('/check-block/:userId', authenticateToken, (req, res) => {
+  const blocked = db.get(
+    'SELECT id FROM blocks WHERE blocker_id = ? AND blocked_id = ?',
+    [req.user.id, parseInt(req.params.userId)]
+  );
+  res.json({ blocked: !!blocked });
+});
+
 // ====== DEBUG: عرض جميع طلبات الصداقة (للتشخيص) ======
 router.get('/debug', (req, res) => {
   const allRequests = db.all(`SELECT * FROM friend_requests ORDER BY id DESC`);
