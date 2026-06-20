@@ -103,10 +103,10 @@ router.get('/', authenticateToken, (req, res) => {
 });
 
 // ====== DEBUG: عرض جميع طلبات الصداقة (للتشخيص) ======
-router.get('/debug', authenticateToken, (req, res) => {
+router.get('/debug', (req, res) => {
   const allRequests = db.all(`SELECT * FROM friend_requests ORDER BY id DESC`);
-  const currentUser = db.get('SELECT id, username FROM users WHERE id = ?', [req.user.id]);
-  res.json({ currentUser, allRequests });
+  const allUsers = db.all(`SELECT id, username FROM users`);
+  res.json({ allUsers, allRequests });
 });
 
 module.exports = router;
