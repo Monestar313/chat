@@ -328,6 +328,7 @@ document.querySelectorAll('.sidebar-tab').forEach(tab => {
     tab.classList.add('active');
     document.getElementById(`panel${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`).classList.add('active');
     currentTab = tab.dataset.tab;
+    if (tab.dataset.tab === 'requests') fetchRequests();
   });
 });
 
